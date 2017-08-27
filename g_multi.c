@@ -17,7 +17,7 @@
 #include <linux/module.h>
 #include <linux/netdevice.h>
 
-#include "u_serial.h"
+#include "function/u_serial.h"
 #if defined USB_ETH_RNDIS
 #  undef USB_ETH_RNDIS
 #endif
@@ -33,14 +33,14 @@ MODULE_AUTHOR("Michal Nazarewicz");
 MODULE_LICENSE("GPL");
 
 
-#include "f_mass_storage.h"
+#include "function/f_mass_storage.h"
 
-#include "u_ecm.h"
+#include "function/u_ecm.h"
 #ifdef USB_ETH_RNDIS
-#  include "u_rndis.h"
-#  include "rndis.h"
+#  include "function/u_rndis.h"
+#  include "function/rndis.h"
 #endif
-#include "u_ether.h"
+#include "function/u_ether.h"
 
 USB_GADGET_COMPOSITE_OPTIONS();
 
@@ -307,6 +307,8 @@ static int __ref multi_bind(struct usb_composite_dev *cdev)
 	struct fsg_opts *fsg_opts;
 	struct fsg_config config;
 	int status;
+
+	printk(KERN_INFO "ajj - my multi");
 
 	if (!can_support_ecm(cdev->gadget)) {
 		dev_err(&gadget->dev, "controller '%s' not usable\n",
