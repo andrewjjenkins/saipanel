@@ -173,6 +173,8 @@ static int rndis_do_config(struct usb_configuration *c)
           ret = PTR_ERR(f_hid_rndis);
           goto err_func_hid;
         }
+	f_hid_multi->func.bind = ajj_hidg_bind;
+	f_hid_multi->func.unbind = ajj_hidg_unbind;
 
 	printk(KERN_INFO "ajj - got usb function %p", f_hid_rndis);
         ret = usb_add_function(c, f_hid_rndis);
@@ -274,6 +276,8 @@ static int cdc_do_config(struct usb_configuration *c)
           ret = PTR_ERR(f_hid_multi);
           goto err_func_hid;
         }
+	f_hid_multi->func.bind = ajj_hidg_bind;
+	f_hid_multi->func.unbind = ajj_hidg_unbind;
 
 	printk(KERN_INFO "ajj - got usb function %p multi", f_hid_rndis);
         ret = usb_add_function(c, f_hid_multi);

@@ -22,7 +22,7 @@
 #include <linux/usb/g_hid.h>
 
 #include "u_f.h"
-#include "u_hid.h"
+#include "function/u_hid.h"
 
 #define HIDG_MINORS	4
 
@@ -624,7 +624,7 @@ static const struct file_operations f_hidg_fops = {
 	.llseek		= noop_llseek,
 };
 
-static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
+int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct usb_ep		*ep;
 	struct f_hidg		*hidg = func_to_hidg(f);
@@ -632,6 +632,8 @@ static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
 	struct device		*device;
 	int			status;
 	dev_t			dev;
+
+	printk(KERN_INFO "in ajj_hidg_bind");
 
 	/* maybe allocate device-global string IDs, and patch descriptors */
 	us = usb_gstrings_attach(c->cdev, ct_func_strings,
@@ -660,8 +662,11 @@ static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
 
 	/* preallocate request and buffer */
 	status = -ENOMEM;
-	hidg->req = alloc_ep_req(hidg->in_ep, hidg->report_length);
+	hidg->req = usb_ep_alloc_request(hidg->in_ep, GFP_KERNEL);
 	if (!hidg->req)
+		goto fail;
+	hidg->req->buf = kmalloc(hidg->report_length, GFP_KERNEL);
+	if (!hidg->req->buf)
 		goto fail;
 
 	/* set descriptor dynamic values */
@@ -709,6 +714,7 @@ static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
 		goto del;
 	}
 
+	printk(KERN_INFO "ajj_hidg_bind success");
 	return 0;
 del:
 	cdev_del(&hidg->cdev);
@@ -947,18 +953,21 @@ static void hidg_free(struct usb_function *f)
 	mutex_unlock(&opts->lock);
 }
 
-static void hidg_unbind(struct usb_configuration *c, struct usb_function *f)
+void ajj_hidg_unbind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct f_hidg *hidg = func_to_hidg(f);
+	printk(KERN_INFO "in ajj_hidg_unbind");
 
 	device_destroy(hidg_class, MKDEV(major, hidg->minor));
 	cdev_del(&hidg->cdev);
 
 	/* disable/free request and end point */
 	usb_ep_disable(hidg->in_ep);
-	free_ep_req(hidg->in_ep, hidg->req);
+	kfree(hidg->req->buf);
+	usb_ep_free_request(hidg->in_ep, hidg->req);
 
 	usb_free_all_descriptors(f);
+	printk(KERN_INFO "ajj_hidg_unbind success");
 }
 
 static struct usb_function *hidg_alloc(struct usb_function_instance *fi)
@@ -995,8 +1004,8 @@ static struct usb_function *hidg_alloc(struct usb_function_instance *fi)
 	mutex_unlock(&opts->lock);
 
 	hidg->func.name    = "hid";
-	hidg->func.bind    = hidg_bind;
-	hidg->func.unbind  = hidg_unbind;
+	hidg->func.bind    = ajj_hidg_bind;
+	hidg->func.unbind  = ajj_hidg_unbind;
 	hidg->func.set_alt = hidg_set_alt;
 	hidg->func.disable = hidg_disable;
 	hidg->func.setup   = hidg_setup;
@@ -1006,44 +1015,4 @@ static struct usb_function *hidg_alloc(struct usb_function_instance *fi)
 	hidg->qlen	   = 4;
 
 	return &hidg->func;
-}
-
-DECLARE_USB_FUNCTION_INIT(hid, hidg_alloc_inst, hidg_alloc);
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Fabien Chouteau");
-
-int ghid_setup(struct usb_gadget *g, int count)
-{
-	int status;
-	dev_t dev;
-
-	hidg_class = class_create(THIS_MODULE, "hidg");
-	if (IS_ERR(hidg_class)) {
-		status = PTR_ERR(hidg_class);
-		hidg_class = NULL;
-		return status;
-	}
-
-	status = alloc_chrdev_region(&dev, 0, count, "hidg");
-	if (status) {
-		class_destroy(hidg_class);
-		hidg_class = NULL;
-		return status;
-	}
-
-	major = MAJOR(dev);
-	minors = count;
-
-	return 0;
-}
-
-void ghid_cleanup(void)
-{
-	if (major) {
-		unregister_chrdev_region(MKDEV(major, 0), minors);
-		major = minors = 0;
-	}
-
-	class_destroy(hidg_class);
-	hidg_class = NULL;
 }
