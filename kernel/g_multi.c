@@ -68,7 +68,7 @@ static struct usb_device_descriptor device_desc = {
 	.bLength =		sizeof device_desc,
 	.bDescriptorType =	USB_DT_DEVICE,
 
-	.bcdUSB =		cpu_to_le16(0x0200),
+	/* .bcdUSB = DYNAMIC */
 
 	.bDeviceClass =		USB_CLASS_MISC /* 0xEF */,
 	.bDeviceSubClass =	2,
@@ -167,15 +167,18 @@ static int rndis_do_config(struct usb_configuration *c)
 	if (ret)
 		goto err_conf_acm;
 
+	printk(KERN_INFO "ajj - about to usb_get_function");
         f_hid_rndis = usb_get_function(fi_hid);
         if (IS_ERR(f_hid_rndis)) {
           ret = PTR_ERR(f_hid_rndis);
           goto err_func_hid;
         }
 
+	printk(KERN_INFO "ajj - got usb function %p", f_hid_rndis);
         ret = usb_add_function(c, f_hid_rndis);
         if (ret)
           goto err_conf_hid;
+	printk(KERN_INFO "ajj - added usb function %d", ret);
 
 	f_msg_rndis = usb_get_function(fi_msg);
 	if (IS_ERR(f_msg_rndis)) {
@@ -265,15 +268,18 @@ static int cdc_do_config(struct usb_configuration *c)
 	if (ret)
 		goto err_conf_acm;
 
+	printk(KERN_INFO "ajj - about to usb_get_function multi");
         f_hid_multi = usb_get_function(fi_hid);
         if (IS_ERR(f_hid_multi)) {
           ret = PTR_ERR(f_hid_multi);
           goto err_func_hid;
         }
 
+	printk(KERN_INFO "ajj - got usb function %p multi", f_hid_rndis);
         ret = usb_add_function(c, f_hid_multi);
         if (ret)
           goto err_conf_hid;
+	printk(KERN_INFO "ajj - added usb function %d multi", ret);
 
 	f_msg_multi = usb_get_function(fi_msg);
 	if (IS_ERR(f_msg_multi)) {
@@ -472,6 +478,7 @@ static int __ref multi_bind(struct usb_composite_dev *cdev)
 
 	/* we're done */
 	dev_info(&gadget->dev, DRIVER_DESC "\n");
+	printk(KERN_INFO "ajj - done setting up config");
 	return 0;
 
 

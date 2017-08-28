@@ -1,5 +1,7 @@
 obj-m += g_multi.o
 
+g_multi-objs := g_multi.o f_hid_ajj.o
+
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 
@@ -8,6 +10,6 @@ clean:
 
 install: all
 	sudo cp g_multi.ko /lib/modules/$(shell uname -r)/kernel/drivers/usb/gadget/legacy/g_multi.ko
-	sudo depmod -ae
+	sudo depmod -a
 
 .PHONY: all clean
