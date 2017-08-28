@@ -624,7 +624,7 @@ static const struct file_operations f_hidg_fops = {
 	.llseek		= noop_llseek,
 };
 
-int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
+static int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct usb_ep		*ep;
 	struct f_hidg		*hidg = func_to_hidg(f);
@@ -953,7 +953,7 @@ static void hidg_free(struct usb_function *f)
 	mutex_unlock(&opts->lock);
 }
 
-void ajj_hidg_unbind(struct usb_configuration *c, struct usb_function *f)
+static void ajj_hidg_unbind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct f_hidg *hidg = func_to_hidg(f);
 	printk(KERN_INFO "in ajj_hidg_unbind");
