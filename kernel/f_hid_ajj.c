@@ -22,7 +22,7 @@
 #include <linux/usb/g_hid.h>
 
 #include "u_f.h"
-#include "u_hid.h"
+#include "function/u_hid.h"
 
 #define HIDG_MINORS	4
 
