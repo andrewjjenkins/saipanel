@@ -624,7 +624,7 @@ static const struct file_operations f_hidg_fops = {
 	.llseek		= noop_llseek,
 };
 
-static int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
+int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct usb_ep		*ep;
 	struct f_hidg		*hidg = func_to_hidg(f);
@@ -638,6 +638,7 @@ static int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
 	/* maybe allocate device-global string IDs, and patch descriptors */
 	us = usb_gstrings_attach(c->cdev, ct_func_strings,
 				 ARRAY_SIZE(ct_func_string_defs));
+	printk(KERN_INFO "us is %p", us);
 	if (IS_ERR(us))
 		return PTR_ERR(us);
 	hidg_interface_desc.iInterface = us[CT_FUNC_HID_IDX].id;
@@ -663,9 +664,11 @@ static int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
 	/* preallocate request and buffer */
 	status = -ENOMEM;
 	hidg->req = usb_ep_alloc_request(hidg->in_ep, GFP_KERNEL);
+	printk(KERN_INFO "hidg->req: %p", hidg->req);
 	if (!hidg->req)
 		goto fail;
 	hidg->req->buf = kmalloc(hidg->report_length, GFP_KERNEL);
+	printk(KERN_INFO "hidg->req->buf: %p", hidg->req->buf);
 	if (!hidg->req->buf)
 		goto fail;
 
@@ -691,6 +694,7 @@ static int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
 
 	status = usb_assign_descriptors(f, hidg_fs_descriptors,
 			hidg_hs_descriptors, NULL, NULL);
+	printk(KERN_INFO "status is %d", status);
 	if (status)
 		goto fail;
 
@@ -704,11 +708,13 @@ static int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
 	cdev_init(&hidg->cdev, &f_hidg_fops);
 	dev = MKDEV(major, hidg->minor);
 	status = cdev_add(&hidg->cdev, dev, 1);
+	printk(KERN_INFO "status is %d", status);
 	if (status)
 		goto fail_free_descs;
 
 	device = device_create(hidg_class, NULL, dev, NULL,
 			       "%s%d", "hidg", hidg->minor);
+	printk(KERN_INFO "device is %p", device);
 	if (IS_ERR(device)) {
 		status = PTR_ERR(device);
 		goto del;
@@ -953,7 +959,7 @@ static void hidg_free(struct usb_function *f)
 	mutex_unlock(&opts->lock);
 }
 
-static void ajj_hidg_unbind(struct usb_configuration *c, struct usb_function *f)
+void ajj_hidg_unbind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct f_hidg *hidg = func_to_hidg(f);
 	printk(KERN_INFO "in ajj_hidg_unbind");

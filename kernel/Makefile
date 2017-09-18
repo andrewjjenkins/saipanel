@@ -1,6 +1,6 @@
 obj-m += g_multi.o
 
-g_multi-objs := g_multi.o f_hid_ajj.o
+g_multi-objs := multi.o f_hid_ajj.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
