@@ -677,7 +677,7 @@ static const struct file_operations f_hidg_fops = {
 	.llseek		= noop_llseek,
 };
 
-static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
+int ajj_hidg_bind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct usb_ep		*ep;
 	struct f_hidg		*hidg = func_to_hidg(f);
@@ -686,12 +686,16 @@ static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
 	int			status;
 	dev_t			dev;
 
+	printk(KERN_INFO "ajj - here1");
+
 	/* maybe allocate device-global string IDs, and patch descriptors */
 	us = usb_gstrings_attach(c->cdev, ct_func_strings,
 				 ARRAY_SIZE(ct_func_string_defs));
 	if (IS_ERR(us))
 		return PTR_ERR(us);
 	hidg_interface_desc.iInterface = us[CT_FUNC_HID_IDX].id;
+
+	printk(KERN_INFO "ajj - here2");
 
 	/* allocate instance-specific interface IDs, and patch descriptors */
 	status = usb_interface_id(c, f);
@@ -706,10 +710,14 @@ static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
 		goto fail;
 	hidg->in_ep = ep;
 
+	printk(KERN_INFO "ajj - here3");
+
 	ep = usb_ep_autoconfig(c->cdev->gadget, &hidg_fs_out_ep_desc);
 	if (!ep)
 		goto fail;
 	hidg->out_ep = ep;
+
+	printk(KERN_INFO "ajj - here4");
 
 	/* set descriptor dynamic values */
 	hidg_interface_desc.bInterfaceSubClass = hidg->bInterfaceSubClass;
@@ -736,6 +744,8 @@ static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
 	if (status)
 		goto fail;
 
+	printk(KERN_INFO "ajj - here6");
+
 	spin_lock_init(&hidg->write_spinlock);
 	hidg->write_pending = 1;
 	hidg->req = NULL;
@@ -750,6 +760,8 @@ static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
 	status = cdev_add(&hidg->cdev, dev, 1);
 	if (status)
 		goto fail_free_descs;
+
+	printk(KERN_INFO "ajj - here7");
 
 	device = device_create(hidg_class, NULL, dev, NULL,
 			       "%s%d", "hidg", hidg->minor);
