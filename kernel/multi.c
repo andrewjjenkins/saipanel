@@ -43,6 +43,8 @@ MODULE_LICENSE("GPL");
 #endif
 #include "function/u_ether.h"
 
+extern int ajj_hidg_bind(struct usb_configuration *, struct usb_function *);
+
 USB_GADGET_COMPOSITE_OPTIONS();
 
 USB_ETHERNET_MODULE_PARAMETERS();
@@ -173,6 +175,11 @@ static int rndis_do_config(struct usb_configuration *c)
 		ret = PTR_ERR(f_hid_rndis);
 		goto err_func_hid;
 	}
+	if (f_hid_rndis->bind != ajj_hidg_bind) {
+		printk(KERN_INFO "ajj - setting bind to ajj_hidg_bind");
+		f_hid_rndis->bind = ajj_hidg_bind;
+	}
+
 
 	printk(KERN_INFO "ajj - got usb function %p", f_hid_rndis);
         ret = usb_add_function(c, f_hid_rndis);
@@ -275,8 +282,12 @@ static int cdc_do_config(struct usb_configuration *c)
 		ret = PTR_ERR(f_hid_multi);
 		goto err_func_hid;
 	}
+	if (f_hid_multi->bind != ajj_hidg_bind) {
+		printk(KERN_INFO "ajj - setting bind to ajj_hidg_bind");
+		f_hid_multi->bind = ajj_hidg_bind;
+	}
 
-	printk(KERN_INFO "ajj - got usb function %p multi", f_hid_rndis);
+	printk(KERN_INFO "ajj - got usb function %p multi", f_hid_multi);
 	ret = usb_add_function(c, f_hid_multi);
 	if (ret)
 		goto err_conf_hid;
