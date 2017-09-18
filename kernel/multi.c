@@ -36,15 +36,11 @@ MODULE_LICENSE("GPL");
 #include "function/f_mass_storage.h"
 
 #include "function/u_ecm.h"
-#include "function/u_hid.h"
 #ifdef USB_ETH_RNDIS
 #  include "function/u_rndis.h"
 #  include "function/rndis.h"
 #endif
 #include "function/u_ether.h"
-
-extern int ajj_hidg_bind(struct usb_configuration *, struct usb_function *);
-extern void ajj_hidg_unbind(struct usb_configuration *, struct usb_function *);
 
 USB_GADGET_COMPOSITE_OPTIONS();
 
@@ -106,8 +102,6 @@ static struct usb_gadget_strings *dev_strings[] = {
 	NULL,
 };
 
-static unsigned char hid_report_desc[] = "\x05\x01\x09\x06\xa1\x01\x05\x07\x19\xe0\x29\xe7\x15\x00\x25\x01\x75\x01\x95\x08\x81\x02\x95\x01\x75\x08\x81\x03\x95\x05\x75\x01\x05\x08\x19\x01\x29\x05\x91\x02\x95\x01\x75\x03\x91\x03\x95\x06\x75\x08\x15\x00\x25\x65\x05\x07\x19\x00\x29\x65\x81\x00\xc0";
-
 
 
 
@@ -132,14 +126,12 @@ FSG_MODULE_PARAMETERS(/* no prefix */, fsg_mod_data);
 
 static struct usb_function_instance *fi_acm;
 static struct usb_function_instance *fi_msg;
-static struct usb_function_instance *fi_hid;
 
 /********** RNDIS **********/
 
 #ifdef USB_ETH_RNDIS
 static struct usb_function_instance *fi_rndis;
 static struct usb_function *f_acm_rndis;
-static struct usb_function *f_hid_rndis;
 static struct usb_function *f_rndis;
 static struct usb_function *f_msg_rndis;
 
@@ -168,22 +160,7 @@ static int rndis_do_config(struct usb_configuration *c)
 
 	ret = usb_add_function(c, f_acm_rndis);
 	if (ret)
-		goto err_conf_acm;
-
-	printk(KERN_INFO "ajj - about to usb_get_function");
-        f_hid_rndis = usb_get_function(fi_hid);
-        if (IS_ERR(f_hid_rndis)) {
-          ret = PTR_ERR(f_hid_rndis);
-          goto err_func_hid;
-        }
-	f_hid_rndis->bind = ajj_hidg_bind;
-	f_hid_rndis->unbind = ajj_hidg_unbind;
-
-	printk(KERN_INFO "ajj - got usb function %p", f_hid_rndis);
-        ret = usb_add_function(c, f_hid_rndis);
-        if (ret)
-          goto err_conf_hid;
-	printk(KERN_INFO "ajj - added usb function %d", ret);
+		goto err_conf;
 
 	f_msg_rndis = usb_get_function(fi_msg);
 	if (IS_ERR(f_msg_rndis)) {
@@ -199,12 +176,8 @@ static int rndis_do_config(struct usb_configuration *c)
 err_run:
 	usb_put_function(f_msg_rndis);
 err_fsg:
-        usb_remove_function(c, f_hid_rndis);
-err_conf_hid:
-        usb_put_function(f_hid_rndis);
-err_func_hid:
 	usb_remove_function(c, f_acm_rndis);
-err_conf_acm:
+err_conf:
 	usb_put_function(f_acm_rndis);
 err_func_acm:
 	usb_remove_function(c, f_rndis);
@@ -241,7 +214,6 @@ static __ref int rndis_config_register(struct usb_composite_dev *cdev)
 #ifdef CONFIG_USB_G_MULTI_CDC
 static struct usb_function_instance *fi_ecm;
 static struct usb_function *f_acm_multi;
-static struct usb_function *f_hid_multi;
 static struct usb_function *f_ecm;
 static struct usb_function *f_msg_multi;
 
@@ -271,22 +243,7 @@ static int cdc_do_config(struct usb_configuration *c)
 
 	ret = usb_add_function(c, f_acm_multi);
 	if (ret)
-		goto err_conf_acm;
-
-	printk(KERN_INFO "ajj - about to usb_get_function multi");
-        f_hid_multi = usb_get_function(fi_hid);
-        if (IS_ERR(f_hid_multi)) {
-          ret = PTR_ERR(f_hid_multi);
-          goto err_func_hid;
-        }
-	f_hid_multi->bind = ajj_hidg_bind;
-	f_hid_multi->unbind = ajj_hidg_unbind;
-
-	printk(KERN_INFO "ajj - got usb function %p multi", f_hid_rndis);
-        ret = usb_add_function(c, f_hid_multi);
-        if (ret)
-          goto err_conf_hid;
-	printk(KERN_INFO "ajj - added usb function %d multi", ret);
+		goto err_conf;
 
 	f_msg_multi = usb_get_function(fi_msg);
 	if (IS_ERR(f_msg_multi)) {
@@ -302,12 +259,8 @@ static int cdc_do_config(struct usb_configuration *c)
 err_run:
 	usb_put_function(f_msg_multi);
 err_fsg:
-        usb_remove_function(c, f_hid_multi);
-err_conf_hid:
-        usb_put_function(f_hid_multi);
-err_func_hid:
 	usb_remove_function(c, f_acm_multi);
-err_conf_acm:
+err_conf:
 	usb_put_function(f_acm_multi);
 err_func_acm:
 	usb_remove_function(c, f_ecm);
@@ -351,7 +304,6 @@ static int __ref multi_bind(struct usb_composite_dev *cdev)
 #ifdef USB_ETH_RNDIS
 	struct f_rndis_opts *rndis_opts;
 #endif
-        struct f_hid_opts *hid_opts;
 	struct fsg_opts *fsg_opts;
 	struct fsg_config config;
 	int status;
@@ -415,26 +367,11 @@ static int __ref multi_bind(struct usb_composite_dev *cdev)
 		goto fail0;
 	}
 
-        /* set up HID function */
-	printk(KERN_INFO "ajj - setting up HID");
-        fi_hid = usb_get_function_instance("hid");
-        if (IS_ERR(fi_hid)) {
-          status = PTR_ERR(fi_hid);
-          goto fail1;
-        }
-        hid_opts = container_of(fi_hid, struct f_hid_opts, func_inst);
-        hid_opts->subclass = 1;
-        hid_opts->protocol = 1;
-        hid_opts->report_length = 8;
-        hid_opts->report_desc_length = 63;
-        hid_opts->report_desc = hid_report_desc;
-	printk(KERN_INFO "ajj - done setting up HID");
-
 	/* set up mass storage function */
 	fi_msg = usb_get_function_instance("mass_storage");
 	if (IS_ERR(fi_msg)) {
 		status = PTR_ERR(fi_msg);
-		goto fail2;
+		goto fail1;
 	}
 	fsg_config_from_params(&config, &fsg_mod_data, fsg_num_buffers);
 	fsg_opts = fsg_opts_from_func_inst(fi_msg);
@@ -442,7 +379,7 @@ static int __ref multi_bind(struct usb_composite_dev *cdev)
 	fsg_opts->no_configfs = true;
 	status = fsg_common_set_num_buffers(fsg_opts->common, fsg_num_buffers);
 	if (status)
-		goto fail3;
+		goto fail2;
 
 	status = fsg_common_set_cdev(fsg_opts->common, cdev, config.can_stall);
 	if (status)
@@ -485,7 +422,6 @@ static int __ref multi_bind(struct usb_composite_dev *cdev)
 
 	/* we're done */
 	dev_info(&gadget->dev, DRIVER_DESC "\n");
-	printk(KERN_INFO "ajj - done setting up config");
 	return 0;
 
 
@@ -497,10 +433,8 @@ fail_string_ids:
 	fsg_common_remove_luns(fsg_opts->common);
 fail_set_cdev:
 	fsg_common_free_buffers(fsg_opts->common);
-fail3:
-	usb_put_function_instance(fi_msg);
 fail2:
-	usb_put_function_instance(fi_hid);
+	usb_put_function_instance(fi_msg);
 fail1:
 	usb_put_function_instance(fi_acm);
 fail0:
@@ -529,7 +463,6 @@ static int multi_unbind(struct usb_composite_dev *cdev)
 #ifdef USB_ETH_RNDIS
 	usb_put_function(f_acm_rndis);
 #endif
-        usb_put_function_instance(fi_hid);
 	usb_put_function_instance(fi_acm);
 #ifdef USB_ETH_RNDIS
 	usb_put_function(f_rndis);
