@@ -2,6 +2,54 @@
 Using BeagleBone Black as a custom Saitek Switch Panel driver
 
 
+# Installing the Kernel Module
+
+The kernel/g_multi.c file is a kernel module that provides a USB gadget
+(device) interface that has a Human Interface Device (HID) keyboard device in
+addition to the profiles that are normal for the BeagleBone (RNDIS/CDC network
+interface card, mass storage, TTYs).
+
+The easiest way to use this is to compile the new kernel module and replace the
+existing g_multi kernel module.  This way, all the existing init scripts (like
+/opt/scripts/boot/am335x.sh) still work without modification.  From now on,
+when you use your BeagleBone as a USB device, the host will see an additional
+keyboard, which is connected to /dev/hidg0 (by default) on the BeagleBone.
+
+However:
+
+  1. If you upgrade the kernel on the BeagleBone, you'll have to repeat the
+  kernel module steps.
+
+  2. If something goes wrong, installing an incompatible g_multi.ko will make
+  your BeagleBone stop working as a USB device until you fix it.  You'll need
+  to be able to get in via network, or modify the SD card, or re-flash the
+  board.
+
+
+To compile the kernel module:
+
+    sudo apt-get update
+    sudo apt-get install build-essential linux-headers-`uname -r`
+    cd kernel
+    make
+
+To install the kernel module:
+
+    make install
+    sudo vim /opt/scripts/boot/am335x_evm.sh
+    # You need to make it call use_old_g_multi instead of use_libcomposite
+
+Then, reboot:
+
+    sudo reboot
+
+The newest BeagleBone images (kernel 4.9.44-ti-r56) use libcomposite instead of
+g_multi.  If I add hid to the libcomposite setup I get backtraces in dmesg and
+the RNDIS doesn't work on windows.  I'd love to replace this kernel module with
+a libcomposite script instead so if you can get libcomposite to load a HID
+keyboard and an RNDIS NIC on windows, let me know.
+
+
 # Specs for the PZ55 switch panel
 
 Captured by ArturDCS from https://forums.eagle.ru/showthread.php?p=2293326
