@@ -182,45 +182,35 @@ class Panel extends EventEmitter {
   }
 
   emitmagneto(pos) {
-    const self = this;
     const key = this.keys.MAGNETO;
     const eventName = 'MAGNETO' + '_' + pos;
-    log.debug('%s detected %s', this.name(), eventName);
-
-    this.events++;
-    key.events++;
-    key.last = new Date().toString();
-    key.position = pos;
-
-    process.nextTick(function () { self.emit(eventName); });
+    this.deferEmit([eventName], key, pos);
   }
 
   emitgear(up) {
-    const self = this;
     const key = this.keys.GEAR;
     const eventName = 'GEAR' + (up ? '_UP' : '_DOWN');
-    log.debug('%s detected %s', this.name(), eventName);
-
-    this.events++;
-    key.events++;
-    key.last = new Date().toString();
-    key.position = up;
-
-    process.nextTick(function () { self.emit(eventName); });
+    this.deferEmit([eventName, 'GEAR_TOGGLE'], key, up);
   }
 
   emitkey(keyName, on) {
-    const self = this;
-    const key = this.keys[keyName]
+    const key = this.keys[keyName];
     const eventName = keyName + (on ? '_ON' : '_OFF');
-    log.debug('%s detected keypress %s', this.name(), eventName);
+    this.deferEmit([eventName, keyName + '_TOGGLE'], key, on);
+  }
 
-    this.events++;
+  deferEmit(evs, key, pos) {
+    const self = this;
+    self.events++;
     key.events++;
     key.last = new Date().toString();
-    key.position = on;
-
-    process.nextTick(function () { self.emit(eventName); });
+    key.position = pos;
+    process.nextTick(function () {
+      evs.forEach(function(ev) {
+        log.debug('%s emitting %s', self.name(), ev);
+        self.emit(ev);
+      });
+    });
   }
 
   name() {
