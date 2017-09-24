@@ -1,5 +1,5 @@
 const drivers = require('./drivers');
-const log = require('../log');
+const log = require('../../log');
 const _ = require('lodash');
 
 const defaultDevices = [

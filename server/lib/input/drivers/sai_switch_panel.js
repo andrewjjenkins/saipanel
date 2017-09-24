@@ -4,7 +4,7 @@ const net = require('net');
 const EventEmitter = require('events');
 const promisify = require('util.promisify');
 
-const log = require('../../log');
+const log = require('../../../log');
 
 const KEYPRESS_PACKET_SIZE = 3;
 const KEYPRESSES = {

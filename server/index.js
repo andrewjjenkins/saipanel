@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const expressWinston = require('express-winston');
 const log = require('./log');
 const router = require('./router');
-const inputs = require('./lib/inputs');
+const input = require('./lib/input');
 
 
 const app = express();
@@ -20,7 +20,7 @@ var port = process.env.PORT || 8081;
 app.listen(port);
 
 router.use(app).then(function (apiRouter) {
-  return inputs.init(apiRouter);
+  return input.init(apiRouter);
 })
 .then(function () {
   log.info('Inputs initialized');
