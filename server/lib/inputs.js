@@ -50,26 +50,18 @@ class InputDeviceManager {
   createRoutes(router) {
     var self = this;
     return new Promise(function (accept, reject) {
+      const devNames = Object.keys(self.devices);
       router.get('/inputs', function (req, res) {
-        return res.json(Object.keys(self.devices));
-      });
-      router.get('/inputs/:dev', function (req, res) {
-        const devParam = req.params.dev;
-        if (!self.devices[devParam]) { return res.sendStatus(404); }
-
-        return res.json([
-          'status',
-        ]);
-      });
-      router.get('/inputs/:dev/status', function (req, res) {
-        const devParam = req.params.dev;
-        const dev = self.devices[devParam];
-        if (!dev) { return res.sendStatus(404); }
-
-        return res.json(dev.status());
+        return res.json(devNames);
       });
 
-      return accept();
+      const devRoutePromises = [];
+
+      devNames.forEach(function(devName) {
+        const dev = self.devices[devName];
+        devRoutePromises.push(dev.attachRoutes(router, '/inputs/' + devName));
+      });
+      Promise.all(devRoutePromises).then(accept, reject);
     });
   }
 }
@@ -79,11 +71,9 @@ module.exports.init = function (router) {
   return new Promise(function (accept, reject) {
     const manager = new InputDeviceManager();
 
-    Promise.all([
-      manager.loadDefaultDevices(),
-      manager.createRoutes(router),
-    ])
-    .then(function() { return accept(manager); })
-    .catch(reject);
+    manager.loadDefaultDevices()
+      .then(function() { return manager.createRoutes(router); })
+      .then(function() { return accept(manager); })
+      .catch(reject);
   });
 };
