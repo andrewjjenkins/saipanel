@@ -1,17 +1,16 @@
 'use strict';
 const drivers = require('./drivers');
 const log = require('../../log');
-const _ = require('lodash');
 
 const defaultDevices = [
   {
-    'name' : 'hidraw0',
-    'driver': 'sai_switch_panel',
-    'device': '/dev/hidraw0',
+    'name': 'hidg0',
+    'driver': 'hid_keyboard_gadget',
+    'device': '/dev/hidg0',
   },
 ];
 
-class InputDeviceManager {
+class OutputDeviceManager {
   constructor() {
     this.devices = {};
   }
@@ -20,7 +19,7 @@ class InputDeviceManager {
     return new Promise(function (accept, reject) {
       const driver = drivers[devDesc.driver];
       if (!driver) {
-        return reject('No input driver ' + devDesc.driver);
+        return reject('No output driver ' + devDesc.driver);
       }
       driver.create(devDesc).then(accept, reject);
     });
@@ -31,7 +30,7 @@ class InputDeviceManager {
     var devPromises = [];
     defaultDevices.forEach(function (devDesc) {
       devPromises.push(
-        InputDeviceManager.loadDevice(devDesc)
+        OutputDeviceManager.loadDevice(devDesc)
         .then(function (dev) {
           if (self.devices[devDesc.name]) {
             return reject('Duplicate devices ' + devDesc.name);
@@ -44,7 +43,7 @@ class InputDeviceManager {
       );
     });
     return Promise.all(devPromises).then(function() {
-      log.info('Loaded %d input devices', Object.keys(self.devices).length);
+      log.info('Loaded %d output devices', Object.keys(self.devices).length);
     });
   }
 
@@ -52,7 +51,7 @@ class InputDeviceManager {
     var self = this;
     return new Promise(function (accept, reject) {
       const devNames = Object.keys(self.devices);
-      router.get('/inputs', function (req, res) {
+      router.get('/outputs', function (req, res) {
         return res.json(devNames);
       });
 
@@ -60,21 +59,22 @@ class InputDeviceManager {
 
       devNames.forEach(function(devName) {
         const dev = self.devices[devName];
-        devRoutePromises.push(dev.attachRoutes(router, '/inputs/' + devName));
+        devRoutePromises.push(dev.attachRoutes(router, '/outputs/' + devName));
       });
       Promise.all(devRoutePromises).then(accept, reject);
     });
   }
 }
 
-
-module.exports.init = function (router) {
+module.exports.init = function(router) {
   return new Promise(function (accept, reject) {
-    const manager = new InputDeviceManager();
+    const manager = new OutputDeviceManager();
 
     manager.loadDefaultDevices()
       .then(function() { return manager.createRoutes(router); })
-      .then(function() { return accept(manager); })
+      .then(function() { 
+        return accept(manager);
+      })
       .catch(reject);
   });
 };

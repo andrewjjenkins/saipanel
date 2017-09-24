@@ -30,5 +30,6 @@ topRouter.get('/', function (req, res) {
 router.get('/', function (req, res) {
   return res.json([
     'inputs',
+    'outputs',
   ]);
 });

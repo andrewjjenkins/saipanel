@@ -5,6 +5,7 @@ const expressWinston = require('express-winston');
 const log = require('./log');
 const router = require('./router');
 const input = require('./lib/input');
+const output = require('./lib/output');
 
 
 const app = express();
@@ -20,10 +21,14 @@ var port = process.env.PORT || 8081;
 app.listen(port);
 
 router.use(app).then(function (apiRouter) {
-  return input.init(apiRouter);
-})
-.then(function () {
-  log.info('Inputs initialized');
+  return Promise.all([
+    input.init(apiRouter).then(function () {
+      log.info('Inputs initialized');
+    }),
+    output.init(apiRouter).then(function () {
+      log.info('Outputs initialized');
+    }),
+  ])
 })
 .catch(function (err) {
   log.error('Error initializing: ' + err);

@@ -1,9 +1,6 @@
 'use strict';
 const fs = require('fs');
-const net = require('net');
 const EventEmitter = require('events');
-const promisify = require('util.promisify');
-
 const log = require('../../../log');
 
 const KEYPRESS_PACKET_SIZE = 3;
@@ -53,6 +50,7 @@ class Panel extends EventEmitter {
     this.buf = Buffer.alloc(KEYPRESS_PACKET_SIZE);
     this.cur = 0;
     this.last_key = 0;
+    this.last_event = '';
     this.events = 0;
     this.keys = {};
     Object.keys(KEYPRESSES).forEach(function(key) {
@@ -211,6 +209,7 @@ class Panel extends EventEmitter {
         self.emit(ev);
       });
     });
+    this.last_event = evs[0];
   }
 
   name() {
@@ -255,6 +254,7 @@ class Panel extends EventEmitter {
       'driver_name': this.driver_name,
       'cur': this.cur,
       'last_key': this.last_key,
+      'last_event': this.last_event,
     };
   }
 
