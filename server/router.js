@@ -13,6 +13,14 @@ module.exports.use = function(app) {
   });
 };
 
+
+router.use(function (req, res, next) {
+  res.header('Cache-control', 'private, no-cache, no-store, must-revalidate');
+  res.header('Expires', '-1');
+  res.header('Pragma', 'no-cache');
+  return next();
+});
+
 // FIXME(andrew): Load a UI instead?
 topRouter.get('/', function (req, res) {
   return res.redirect('/api/v1');
