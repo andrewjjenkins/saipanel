@@ -6,6 +6,7 @@ const log = require('./lib/log');
 const router = require('./lib/router');
 const input = require('./lib/input');
 const output = require('./lib/output');
+const evRouter = require('./lib/evrouter');
 
 
 const app = express();
@@ -31,11 +32,15 @@ router.use(app).then(function (apiRouter) {
       return manager;
     }),
   ]).then(function (managers) {
-    // FIXME(andrew): Just a test
-    return managers[1].devices.hidg0.writeKey('b');
+    const evRouterOpts = {
+      inputManager: managers[0],
+      outputManager: managers[1],
+      router: apiRouter,
+    };
+    return evRouter.init(evRouterOpts);
   });
 })
-.then(function () {
+.then(function (evRouter) {
   log.info('Initialization complete');
 })
 .catch(function (err) {
