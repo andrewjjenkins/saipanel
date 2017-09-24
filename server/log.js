@@ -12,4 +12,8 @@ winston.configure({
   ],
 });
 
+if (process.env.LOGLEVEL) {
+  winston.level = process.env.LOGLEVEL;
+}
+
 module.exports = winston;
