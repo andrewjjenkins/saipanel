@@ -54,6 +54,7 @@ class Keyboard {
         fd.on('error', function(err) { return self.handleWriteErrors(err); });
         self.fd = fd;
         log.info('%s - Opened', self.name());
+        self.fd.write(Buffer.alloc(8,0)); // Send "no keys" to start
         return accept(self);
       });
     });
