@@ -1,54 +1,87 @@
 # saipanel
 Using BeagleBone Black as a custom Saitek Switch Panel driver
 
+This will turn the BBB into a USB Gadget (device) that you attach to a USB port
+on your computer.  The BBB is also a USB Host, connected to inputs like the
+Saitek Switch Panel.
 
-# Installing the Kernel Module
+```
+                        +------------------+
+                        |    BeagleBone     |                +------------+
++------+      USB       |                   |                |     PC     |
+| PZ55 |--<Dev---Host>--|/dev/hidraw0       |      USB       |            |
++------+                |         /dev/hidg0|--<Dev---Host>--|HID Keyboard|
+                        |        192.168.7.2|                |192.168.7.1 |
+                        | GettingStarted.img|                |D:          |
+                        |            (+more)|                |(+more)     |
+                        +-------------------+                +------------+
+```
 
-The kernel/g_multi.c file is a kernel module that provides a USB gadget
-(device) interface that has a Human Interface Device (HID) keyboard device in
-addition to the profiles that are normal for the BeagleBone (RNDIS/CDC network
-interface card, mass storage, TTYs).
+The BeagleBone comes out-of-the-box as a USB gadget with several features like
+appearing as a USB network card with a connection to the BeagleBone Black's
+internal web server, and appearing as a CD-ROM drive with the manual on it.
 
-The easiest way to use this is to compile the new kernel module and replace the
-existing g_multi kernel module.  This way, all the existing init scripts (like
-/opt/scripts/boot/am335x.sh) still work without modification.  From now on,
-when you use your BeagleBone as a USB device, the host will see an additional
-keyboard, which is connected to /dev/hidg0 (by default) on the BeagleBone.
+This adds functionality to appear as a USB Human Interface Device (HID)
+keyboard on the PC as well.  Writing packets to /dev/hidg0 on the BeagleBone
+causes the PC to see keystrokes from the keyboard.
 
-However:
+Then, `server/` has a node.js program that reads from the switch panel and
+writes keystrokes to /dev/hidg0.
 
-  1. If you upgrade the kernel on the BeagleBone, you'll have to repeat the
-  kernel module steps.
+# Installing the Kernel
+Newish distributions of BeagleBone Black use libcomposite to provide the gadget
+functionality.  This is neat because you can customize the functions in the
+gadget by just writing to files in /sys/config.  However, I could never get the
+USB HID functionality to work at the same time as RNDIS (the windows USB NIC).
 
-  2. If something goes wrong, installing an incompatible g_multi.ko will make
-  your BeagleBone stop working as a USB device until you fix it.  You'll need
-  to be able to get in via network, or modify the SD card, or re-flash the
-  board.
+Instead I have a custom kernel based on the 4.9.44-ti-r61 kernel in use when I
+made this.  This uses the old g_multi module (same purpose as libcomposite, but
+the gadget functionality isn't modifiable at runtime via sysfs).
+
+I'd really rather use libcomposite if anyone can figure out how to make it
+work.  I think there were some bugs like [this](https://github.com/torvalds/linux/commit/749494b6bdbbaf0899aa1c62a1ad74cd747bce47)
+that prevented libcomposite from working properly for HID, so once these
+are upstreamed into a BBB kernel, libcomposite might just work.
+
+The kernel changes I needed are in another repository of mine.
 
 
-To compile the kernel module:
+# Running
 
-    sudo apt-get update
-    sudo apt-get install build-essential linux-headers-`uname -r`
-    cd kernel
-    make
+```
+git clone; cd saipanel/server; npm install; npm start
+```
 
-To install the kernel module:
+# Server
 
-    make install
-    sudo vim /opt/scripts/boot/am335x_evm.sh
-    # You need to make it call use_old_g_multi instead of use_libcomposite
+The server has a concept of inputs, outputs, and bindings, all inside of
+`lib/`.  The inputs are drivers that emit events like "GEAR_TOGGLE" when the
+gear lever is toggled.  The outputs are drivers that have methods like
+`writeKey(key)`.  The bindings connect one input to one or more outputs:
 
-Then, reboot:
+```
+const defaultBindings = [
+  {
+    'name': 'gear',
+    'input': 'hidraw0/GEAR_TOGGLE',
+    'output': 'hidg0/writeKey(g)',
+  },
+];
+```
 
-    sudo reboot
+boils down to pseudocode:
 
-The newest BeagleBone images (kernel 4.9.44-ti-r56) use libcomposite instead of
-g_multi.  If I add hid to the libcomposite setup I get backtraces in dmesg and
-the RNDIS doesn't work on windows.  I'd love to replace this kernel module with
-a libcomposite script instead so if you can get libcomposite to load a HID
-keyboard and an RNDIS NIC on windows, let me know.
+```
+inputDevices[hidraw0].on('GEAR_TOGGLE', function () {
+  outputDevices[hidg0].writeKey('g');
+});
+```
 
+# Client (monitor)
+
+Doesn't really exist yet.  You can go to "http://192.168.7.2:8081/" and get to
+the API where you can poke around and see the counts.  Someday there should be
+a web app that uses the server's REST API to show events and modify bindings.
 
 # Specs for the PZ55 switch panel
 
@@ -104,25 +137,6 @@ Captured by ArturDCS from https://forums.eagle.ru/showthread.php?p=2293326
     * 00100100 0x24 RIGHT YELLOW
 
 # License
-The kernel module in kernel/ is GPLv2.
-
-
-    Saipanel kernel module (in kernel/)
-    Portions copyright (C) 2017 Andrew Jenkins (andrewjjenkins@gmail.com)
-    Mostly copyright original linux usb gadget authors, see files.
-
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-
-Everything else (node app) is MIT.
 
     Copyright (c) 2017 Andrew Jenkins (andrewjjenkins@gmail.com)
 
