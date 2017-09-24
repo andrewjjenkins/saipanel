@@ -1,0 +1,20 @@
+{
+  "name": "saipanel-server",
+  "version": "1.0.0",
+  "description": "Reads from Saitek switch panel and writes keypresses to /dev/hidg",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "nodemonstart": "nodemon index.js"
+  },
+  "author": "Andrew Jenkins <andrewjjenkins@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.15.4",
+    "lodash": "^4.17.4",
+    "util.promisify": "^1.0.0",
+    "winston": "^2.3.1"
+  }
+}

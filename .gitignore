@@ -8,16 +8,11 @@ modules.order
 Module.symvers
 .tmp_versions/
 
-# See https://help.github.com/ignore-files/ for more about ignoring files.
+client/node_modules
+client/coverage
+client/build
+server/node_modules
 
-# dependencies
-/node_modules
-
-# testing
-/coverage
-
-# production
-/build
 
 # misc
 .DS_Store
