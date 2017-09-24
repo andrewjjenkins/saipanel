@@ -13,6 +13,7 @@
   "dependencies": {
     "body-parser": "^1.18.2",
     "express": "^4.15.4",
+    "express-winston": "^2.4.0",
     "lodash": "^4.17.4",
     "util.promisify": "^1.0.0",
     "winston": "^2.3.1"
