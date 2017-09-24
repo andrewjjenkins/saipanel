@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('fs');
 const EventEmitter = require('events');
-const log = require('../../../log');
+const log = require('../../log');
 
 const KEYPRESS_PACKET_SIZE = 3;
 const KEYPRESSES = {

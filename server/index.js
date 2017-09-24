@@ -2,8 +2,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const expressWinston = require('express-winston');
-const log = require('./log');
-const router = require('./router');
+const log = require('./lib/log');
+const router = require('./lib/router');
 const input = require('./lib/input');
 const output = require('./lib/output');
 

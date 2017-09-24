@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('fs');
 const EventEmitter = require('events');
-const log = require('../../../log');
+const log = require('../../log');
 
 class Keyboard {
   constructor(opts) {
