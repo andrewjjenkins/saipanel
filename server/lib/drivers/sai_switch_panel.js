@@ -23,6 +23,11 @@ const KEYPRESSES = {
   'SWITCHKEY_LIGHTS_LANDING' : 0x1000,
 };
 
+const GEAR_POSITIONS = {
+  'GEAR_UP': 0x40000,
+  'GEAR_DOWN': 0x80000,
+};
+
 function min(x, y) { return x < y ? x : y; }
 function max(x, y) { return x < y ? y : x; }
 
@@ -44,6 +49,12 @@ class Panel extends EventEmitter {
         'position': 0,
       };
     }, this);
+
+    this.keys['GEAR'] = {
+      'events': 0,
+      'last': '',
+      'position': 0,
+    };
   }
 
   open() {
@@ -101,6 +112,9 @@ class Panel extends EventEmitter {
     log.debug('%s - onpacket(%d, %d, %d)', this.name(), this.last_key, newKey,
       xorBits);
 
+    this.last_key = newKey;
+
+    // Switches have a bit that represents whether the switch is on or off
     Object.keys(KEYPRESSES).forEach(function(keypress) {
       const bit = KEYPRESSES[keypress];
       if (bit & xorBits) {
@@ -108,8 +122,42 @@ class Panel extends EventEmitter {
         this.emitkey(keypress, on);
       }
     }, this);
-    this.last_key = newKey;
+
+    // Gear has two switches, where either the _UP or _DOWN
+    // switch is on.
+    if (xorBits & GEAR_POSITIONS.GEAR_UP) {
+      if (newKey & GEAR_POSITIONS.GEAR_UP) {
+        if (newKey & GEAR_POSITIONS.GEAR_DOWN) {
+          log.error('%s: Gear up and gear down!', this.name());
+        } else {
+          this.emitgear(1);
+        }
+      } else if (newKey & GEAR_POSITIONS.GEAR_DOWN) {
+        if (newKey & GEAR_POSITIONS.GEAR_UP) {
+          log.error('%s: Gear up and gear down!', this.name());
+        } else {
+          this.emitgear(0);
+        }
+      } else {
+        log.error('Unknown gear state change (%d)', this.newKey);
+      }
+    }
   }
+
+  emitgear(up) {
+    const self = this;
+    const key = this.keys.GEAR;
+    const eventName = 'GEAR' + (up ? '_UP' : '_DOWN');
+    log.debug('%s detected %s', this.name(), eventName);
+
+    this.events++;
+    key.events++;
+    key.last = new Date().toString();
+    key.position = up;
+
+    process.nextTick(function () { self.emit(eventName); });
+  }
+
 
   emitkey(keyName, on) {
     const self = this;
@@ -146,6 +194,9 @@ class Panel extends EventEmitter {
       });
       router.get(root + '/keys/:key', function (req, res) {
         const keyName = req.params.key;
+        if (keyName == 'GEAR') {
+          return res.json(self.gearStatus());
+        }
         const key = KEYPRESSES[keyName];
         if (!key) { return res.sendStatus(404); }
         return res.json(self.keyStatus(keyName));
@@ -166,6 +217,10 @@ class Panel extends EventEmitter {
 
   keyStatus(key) {
     return this.keys[key];
+  }
+
+  gearStatus() {
+    return this.keys.GEAR;
   }
 };
 
