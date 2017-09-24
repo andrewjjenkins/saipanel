@@ -55,7 +55,7 @@ class InputDeviceManager {
       });
       router.get('/inputs/:dev', function (req, res) {
         const devParam = req.params.dev;
-        if (!self.devices[devParam]) { return res.send(404); }
+        if (!self.devices[devParam]) { return res.sendStatus(404); }
 
         return res.json([
           'status',
@@ -64,7 +64,7 @@ class InputDeviceManager {
       router.get('/inputs/:dev/status', function (req, res) {
         const devParam = req.params.dev;
         const dev = self.devices[devParam];
-        if (!dev) { return res.send(404); }
+        if (!dev) { return res.sendStatus(404); }
 
         return res.json(dev.status());
       });
