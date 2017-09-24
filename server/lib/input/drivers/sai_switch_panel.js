@@ -49,7 +49,7 @@ class Panel extends EventEmitter {
     this.fd = null;
     this.buf = Buffer.alloc(KEYPRESS_PACKET_SIZE);
     this.cur = 0;
-    this.last_key = 0;
+    this.last_key = null;
     this.last_event = '';
     this.events = 0;
     this.keys = {};
@@ -128,6 +128,12 @@ class Panel extends EventEmitter {
 
     log.debug('%s - onpacket(%d, %d, %d)', this.name(), this.last_key, newKey,
       xorBits);
+
+    if (this.last_key === null) {
+      log.info('%s: Ignoring first key, can\'t detect toggles', this.name());
+      this.last_key = newKey;
+      return;
+    }
 
     // Switches have a bit that represents whether the switch is on or off
     Object.keys(KEYPRESSES).forEach(function(keypress) {
