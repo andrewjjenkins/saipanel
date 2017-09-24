@@ -28,6 +28,19 @@ const GEAR_POSITIONS = {
   'GEAR_DOWN': 0x80000,
 };
 
+const MAGNETO_POSITIONS = {
+  'OFF': 0x2000,
+  'R': 0x4000,
+  'L': 0x8000,
+  'ALL': 0x10000,
+  'START': 0x20000,
+};
+
+var MAGNETO_BITMASK = 0;
+Object.keys(MAGNETO_POSITIONS).forEach(function(pos) {
+  MAGNETO_BITMASK |= MAGNETO_POSITIONS[pos];
+});
+
 function min(x, y) { return x < y ? x : y; }
 function max(x, y) { return x < y ? y : x; }
 
@@ -51,6 +64,12 @@ class Panel extends EventEmitter {
     }, this);
 
     this.keys['GEAR'] = {
+      'events': 0,
+      'last': '',
+      'position': 0,
+    };
+
+    this.keys['MAGNETO'] = {
       'events': 0,
       'last': '',
       'position': 0,
@@ -112,8 +131,6 @@ class Panel extends EventEmitter {
     log.debug('%s - onpacket(%d, %d, %d)', this.name(), this.last_key, newKey,
       xorBits);
 
-    this.last_key = newKey;
-
     // Switches have a bit that represents whether the switch is on or off
     Object.keys(KEYPRESSES).forEach(function(keypress) {
       const bit = KEYPRESSES[keypress];
@@ -142,6 +159,40 @@ class Panel extends EventEmitter {
         log.error('Unknown gear state change (%d)', this.newKey);
       }
     }
+
+    // Rotary has several positions
+    if (xorBits & MAGNETO_BITMASK) {
+      const magnetoBits = newKey & MAGNETO_BITMASK;
+      log.debug('%s: Evaluating magneto bits %d', this.name(), magnetoBits);
+
+      var matched = false;
+      Object.keys(MAGNETO_POSITIONS).forEach(function(pos) {
+        if (MAGNETO_POSITIONS[pos] & magnetoBits) {
+          if (matched) {
+            log.error('%s: Found extra magneto position (%s)', pos);
+          } else {
+            this.emitmagneto(pos);
+            matched = true;
+          }
+        }
+      }, this);
+    }
+
+    this.last_key = newKey;
+  }
+
+  emitmagneto(pos) {
+    const self = this;
+    const key = this.keys.MAGNETO;
+    const eventName = 'MAGNETO' + '_' + pos;
+    log.debug('%s detected %s', this.name(), eventName);
+
+    this.events++;
+    key.events++;
+    key.last = new Date().toString();
+    key.position = pos;
+
+    process.nextTick(function () { self.emit(eventName); });
   }
 
   emitgear(up) {
@@ -157,7 +208,6 @@ class Panel extends EventEmitter {
 
     process.nextTick(function () { self.emit(eventName); });
   }
-
 
   emitkey(keyName, on) {
     const self = this;
@@ -195,7 +245,10 @@ class Panel extends EventEmitter {
       router.get(root + '/keys/:key', function (req, res) {
         const keyName = req.params.key;
         if (keyName == 'GEAR') {
-          return res.json(self.gearStatus());
+          return res.json(self.keyStatus('GEAR'));
+        }
+        if (keyName == 'MAGNETO') {
+          return res.json(self.keyStatus('MAGNETO'));
         }
         const key = KEYPRESSES[keyName];
         if (!key) { return res.sendStatus(404); }
@@ -217,10 +270,6 @@ class Panel extends EventEmitter {
 
   keyStatus(key) {
     return this.keys[key];
-  }
-
-  gearStatus() {
-    return this.keys.GEAR;
   }
 };
 
